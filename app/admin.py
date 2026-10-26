@@ -1,0 +1,60 @@
+from app.db import query_all
+
+ADMIN_READ_TIMEOUT_SECONDS = 20
+
+def get_packing_logs(limit: int = 200):
+    return query_all(
+        """
+        SELECT serial_num, po_num, operator_en, shift, chargingboard, controlboard,
+               date_time, test_rep, remarks, status
+        FROM soniquemini.ledboard_assembly
+        ORDER BY date_time DESC
+        LIMIT %s
+        """,
+        (limit,),
+        read_timeout=ADMIN_READ_TIMEOUT_SECONDS,
+    )
+
+def get_operator_summary():
+    return query_all(
+        """
+        SELECT
+            operator_en,
+            COUNT(*)            AS total_scanned,
+            SUM(status = 1)     AS total_pass,
+            MAX(date_time)      AS last_scan
+        FROM soniquemini.ledboard_assembly
+        GROUP BY operator_en
+        ORDER BY total_scanned DESC
+        """,
+        read_timeout=ADMIN_READ_TIMEOUT_SECONDS,
+    )
+
+def get_daily_summary():
+    return query_all(
+        """
+        SELECT
+            DATE(date_time)     AS scan_date,
+            COUNT(*)            AS total,
+            SUM(status = 1)     AS passed
+        FROM soniquemini.ledboard_assembly
+        GROUP BY scan_date
+        ORDER BY scan_date DESC
+        LIMIT 30
+        """,
+        read_timeout=ADMIN_READ_TIMEOUT_SECONDS,
+    )
+
+def get_recent_by_operator(operator_en: str, limit: int = 50):
+    return query_all(
+        """
+        SELECT serial_num, po_num, shift, chargingboard, controlboard,
+               date_time, status, remarks
+        FROM soniquemini.ledboard_assembly
+        WHERE operator_en = %s
+        ORDER BY date_time DESC
+        LIMIT %s
+        """,
+        (operator_en, limit),
+        read_timeout=ADMIN_READ_TIMEOUT_SECONDS,
+    )
