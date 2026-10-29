@@ -7,10 +7,6 @@ BOARD_STATIONS = {
         "table": "soniquemini.chargingboard_main",
         "stations": ("test",),
     },
-    "controlboard": {
-        "table": "soniquemini.controlboard_main",
-        "stations": ("progtest", "vi"),
-    },
 }
 REQUIRED_STATIONS = (
     "test",
@@ -20,7 +16,7 @@ MAX_FAIL_REPETITIONS = 3
 
 
 def lookup_board(serial_num: str, board_type: str):
-    """Look up a charging or control board and its required station results."""
+    """Look up a chargingboard and its required station results."""
     config = BOARD_STATIONS.get(board_type)
     if config is None:
         return None
@@ -43,7 +39,7 @@ def process_board_check(serial_num: str, board_type: str):
     if config is None:
         return {
             "status": "fail",
-            "message": "Choose either the chargingboard or controlboard station.",
+            "message": "Choose the chargingboard station.",
             "ok": False,
         }
 
@@ -151,7 +147,6 @@ def _already_assembly_message(record: dict) -> str:
 def record_assembly(
     serial_num: str,
     chargingboard: str,
-    controlboard: str,
     po_num: str,
     operator_en: str,
     shift: str,
@@ -205,7 +200,7 @@ def record_assembly(
                 operator_en,
                 shift,
                 chargingboard,
-                controlboard,
+                "",
                 datetime.now(),
             ),
         )
@@ -221,7 +216,6 @@ def record_assembly(
 def record_fail(
     serial_num: str,
     chargingboard: str,
-    controlboard: str,
     po_num: str,
     operator_en: str,
     shift: str,
@@ -259,7 +253,7 @@ def record_fail(
                 operator_en,
                 shift,
                 chargingboard,
-                controlboard,
+                "",
                 datetime.now(),
                 repetition,
                 reason,
@@ -274,26 +268,21 @@ def record_fail(
         conn.close()
 
 
-def validate_scan(serial_num: str, chargingboard: str, controlboard: str):
-    """Validate both scanned boards and all required LED-board stations."""
+def validate_scan(serial_num: str, chargingboard: str):
+    """Validate the scanned chargingboard and required LED-board stations."""
     serial_num = serial_num.strip()
     chargingboard = chargingboard.strip()
-    controlboard = controlboard.strip()
 
-    if not chargingboard or not controlboard:
+    if not chargingboard:
         return {
             "status": "fail",
-            "message": "Scan and verify both chargingboard and controlboard serials first.",
+            "message": "Scan and verify the chargingboard serial first.",
             "unit": None,
         }
 
-    for board_type, board_serial in (
-        ("chargingboard", chargingboard),
-        ("controlboard", controlboard),
-    ):
-        result = process_board_check(board_serial, board_type)
-        if not result["ok"]:
-            return {"status": result["status"], "message": result["message"], "unit": None}
+    result = process_board_check(chargingboard, "chargingboard")
+    if not result["ok"]:
+        return {"status": result["status"], "message": result["message"], "unit": None}
 
     unit = lookup_unit(serial_num)
     if not unit:
@@ -340,7 +329,6 @@ def validate_scan(serial_num: str, chargingboard: str, controlboard: str):
 def finalize_scan(
     serial_num: str,
     chargingboard: str,
-    controlboard: str,
     operator_en: str,
     shift: str,
     decision: str,
@@ -349,13 +337,12 @@ def finalize_scan(
     """Revalidate the scanned boards and LED-board before saving the decision."""
     serial_num = serial_num.strip()
     chargingboard = chargingboard.strip()
-    controlboard = controlboard.strip()
     decision = (decision or "").strip().lower()
 
     if decision not in ("pass", "fail"):
         return {"status": "fail", "message": "Invalid decision.", "unit": None}
 
-    check = validate_scan(serial_num, chargingboard, controlboard)
+    check = validate_scan(serial_num, chargingboard)
     if check["status"] != "ok":
         if decision == "pass" and check["status"] == "already_assembly":
             return {
@@ -376,7 +363,6 @@ def finalize_scan(
         repetition = record_fail(
             serial_num,
             chargingboard,
-            controlboard,
             unit["po_num"],
             operator_en,
             shift,
@@ -402,7 +388,6 @@ def finalize_scan(
     existing_record = record_assembly(
         serial_num,
         chargingboard,
-        controlboard,
         unit["po_num"],
         operator_en,
         shift,

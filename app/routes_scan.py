@@ -75,17 +75,15 @@ def api_scan():
     data = request.get_json(force=True)
     serial_num = (data.get("serial_num") or "").strip()
     chargingboard = (data.get("chargingboard") or "").strip()
-    controlboard = (data.get("controlboard") or "").strip()
 
     if not serial_num:
         return jsonify({"ok": False, "message": "Serial number is required."}), 400
-    if not chargingboard or not controlboard:
-        return jsonify({"ok": False, "message": "Both board serials are required."}), 400
+    if not chargingboard:
+        return jsonify({"ok": False, "message": "Chargingboard serial is required."}), 400
 
     result = validate_scan(
         serial_num,
         chargingboard,
-        controlboard,
     )
     ok = result["status"] == "ok"
     return jsonify({"ok": ok, **result})
@@ -100,15 +98,14 @@ def api_scan_decision():
     data = request.get_json(force=True)
     serial_num = (data.get("serial_num") or "").strip()
     chargingboard = (data.get("chargingboard") or "").strip()
-    controlboard = (data.get("controlboard") or "").strip()
     decision   = (data.get("decision") or "").strip().lower()
     shift      = (data.get("shift") or "").strip()
     remarks    = (data.get("remarks") or "").strip()
 
-    if not serial_num or not chargingboard or not controlboard:
+    if not serial_num or not chargingboard:
         return jsonify({
             "ok": False,
-            "message": "LED-board serial and both board serials are required.",
+            "message": "LED-board and chargingboard serials are required.",
         }), 400
     if decision not in ("pass", "fail"):
         return jsonify({"ok": False, "message": "Decision must be 'pass' or 'fail'."}), 400
@@ -118,7 +115,6 @@ def api_scan_decision():
     result = finalize_scan(
         serial_num=serial_num,
         chargingboard=chargingboard,
-        controlboard=controlboard,
         operator_en=session["operator_en"],
         shift=shift,
         decision=decision,
