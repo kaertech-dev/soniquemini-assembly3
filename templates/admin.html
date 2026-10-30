@@ -58,9 +58,9 @@
     <div class="table-wrap">
       <table class="log-table">
         <thead><tr>
-          <th>Serial</th><th>PO</th><th>Operator</th><th>Shift</th><th>Chargingboard</th><th>Controlboard</th><th>Date/Time</th><th>Status</th><th>Remarks</th>
+          <th>Serial</th><th>PO</th><th>Operator</th><th>Shift</th><th>Chargingboard</th><th>Date/Time</th><th>Status</th><th>Remarks</th>
         </tr></thead>
-        <tbody id="log-body"><tr><td colspan="9" class="empty-log">Loading…</td></tr></tbody>
+        <tbody id="log-body"><tr><td colspan="8" class="empty-log">Loading…</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -75,7 +75,7 @@
       <div class="table-wrap">
         <table class="log-table">
           <thead><tr>
-            <th>Serial</th><th>PO</th><th>Shift</th><th>Chargingboard</th><th>Controlboard</th><th>Date/Time</th><th>Status</th>
+            <th>Serial</th><th>PO</th><th>Shift</th><th>Chargingboard</th><th>Date/Time</th><th>Status</th>
           </tr></thead>
           <tbody id="modal-body"></tbody>
         </table>
@@ -162,11 +162,10 @@
       <td>${escapeHTML(r.operator_en)}</td>
       <td>${escapeHTML(r.shift)}</td>
       <td class="mono">${escapeHTML(r.chargingboard)}</td>
-      <td class="mono">${escapeHTML(r.controlboard)}</td>
       <td>${escapeHTML(r.date_time)}</td>
       <td><span class="badge badge-${r.status == 1 ? 'ok' : 'fail'}">${r.status == 1 ? 'PASS' : 'FAIL'}</span></td>
       <td>${escapeHTML(r.remarks || '—')}</td>
-    </tr>`).join("") || '<tr><td colspan="9" class="empty-log">No data.</td></tr>';
+    </tr>`).join("") || '<tr><td colspan="8" class="empty-log">No data.</td></tr>';
   }
 
   // ── Operator Detail Modal ─────────────────────────────────────────────────
@@ -179,10 +178,9 @@
       <td class="mono">${escapeHTML(r.po_num)}</td>
       <td>${escapeHTML(r.shift)}</td>
       <td class="mono">${escapeHTML(r.chargingboard)}</td>
-      <td class="mono">${escapeHTML(r.controlboard)}</td>
       <td>${escapeHTML(r.date_time)}</td>
       <td><span class="badge badge-${r.status == 1 ? 'ok' : 'fail'}">${r.status == 1 ? 'PASS' : 'FAIL'}</span></td>
-    </tr>`).join("") || '<tr><td colspan="7" class="empty-log">No scans.</td></tr>';
+    </tr>`).join("") || '<tr><td colspan="6" class="empty-log">No scans.</td></tr>';
     document.getElementById("modal").classList.remove("hidden");
   }
 

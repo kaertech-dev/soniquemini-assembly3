@@ -1,6 +1,6 @@
 <!-- scan.html -->
 {% extends "base.html" %}
-{% block title %}Sonique Mini Assembly Scan{% endblock %}
+{% block title %}Sonique Mini Assembly3 Scan{% endblock %}
 {% block body %}
 <div class="app-wrap">
 
@@ -8,7 +8,7 @@
   <header class="app-header">
     <div class="header-left">
       <span class="logo-icon">📦</span>
-      <span class="header-title">Sonique Mini Assembly Scan</span>
+      <span class="header-title">Sonique Mini Assembly3 Scan</span>
     </div>
     <div class="header-right">
       <span class="operator-badge">👤 {{ operator_en }}</span>
@@ -45,16 +45,6 @@
       <button id="btn-scan-chargingboard" class="btn-primary btn-scan">CHECK CHARGINGBOARD</button>
     </div>
     <div id="scan-msg-chargingboard" class="scan-msg hidden"></div>
-  </div>
-
-  <!-- Controlboard serial -->
-  <div class="scan-section">
-    <div class="scan-row">
-      <input id="scan-controlboard" class="scan-input" type="text"
-             placeholder="Scan controlboard serial number…" autocomplete="off" disabled />
-      <button id="btn-scan-controlboard" class="btn-primary btn-scan" disabled>CHECK CONTROLBOARD</button>
-    </div>
-    <div id="scan-msg-controlboard" class="scan-msg hidden"></div>
   </div>
 
   <!-- LED-board serial -->
@@ -112,7 +102,6 @@
   let count = 0;
   let logRows = [];
   let chargingboardSerial = null;
-  let controlboardSerial = null;
   let verifiedSerial = null;
   let decisionSubmitting = false;
 
@@ -121,16 +110,13 @@
   const trayLbl   = document.getElementById("tray-status");
 
   const scanChargingboard = document.getElementById("scan-chargingboard");
-  const scanControlboard = document.getElementById("scan-controlboard");
   const scanLedboard = document.getElementById("scan-ledboard");
   const msgChargingboard = document.getElementById("scan-msg-chargingboard");
-  const msgControlboard = document.getElementById("scan-msg-controlboard");
   const msgLedboard = document.getElementById("scan-msg-ledboard");
   const logBody     = document.getElementById("log-body");
   const emptyRow    = document.getElementById("empty-row");
   const shiftSel    = document.getElementById("sel-shift");
   const btnChargingboard = document.getElementById("btn-scan-chargingboard");
-  const btnControlboard = document.getElementById("btn-scan-controlboard");
   const btnLedboard = document.getElementById("btn-scan-ledboard");
 
   const decisionRow   = document.getElementById("decision-row");
@@ -187,14 +173,10 @@
 
   function resetScanSteps() {
     chargingboardSerial = null;
-    controlboardSerial = null;
     verifiedSerial = null;
     scanChargingboard.value = "";
     scanChargingboard.disabled = false;
     btnChargingboard.disabled = false;
-    scanControlboard.value = "";
-    scanControlboard.disabled = true;
-    btnControlboard.disabled = true;
     scanLedboard.value = "";
     scanLedboard.disabled = true;
     btnLedboard.disabled = true;
@@ -224,9 +206,9 @@
       if (data.ok) {
         chargingboardSerial = data.serial_num;
         scanChargingboard.disabled = true;
-        scanControlboard.disabled = false;
-        btnControlboard.disabled = false;
-        scanControlboard.focus();
+        scanLedboard.disabled = false;
+        btnLedboard.disabled = false;
+        scanLedboard.focus();
       }
     } catch {
       showMsg(msgChargingboard, "Unable to check the chargingboard serial. Please retry.", "error");
@@ -235,34 +217,13 @@
     }
   }
 
-  async function doCheckControlboard() {
-    const serial = scanControlboard.value.trim();
-    if (!serial) { showMsg(msgControlboard, "Scan the controlboard serial number.", "error"); return; }
-    btnControlboard.disabled = true;
-    try {
-      const data = await checkBoard(serial, "controlboard");
-      showMsg(msgControlboard, data.message, data.ok ? "success" : "error");
-      if (data.ok) {
-        controlboardSerial = data.serial_num;
-        scanControlboard.disabled = true;
-        scanLedboard.disabled = false;
-        btnLedboard.disabled = false;
-        scanLedboard.focus();
-      }
-    } catch {
-      showMsg(msgControlboard, "Unable to check the controlboard serial. Please retry.", "error");
-    } finally {
-      btnControlboard.disabled = controlboardSerial !== null;
-    }
-  }
-
   async function doVerifyLedboard() {
     if (count >= TRAY_LIMIT) {
       showMsg(msgLedboard, `Tray is full (${TRAY_LIMIT}/${TRAY_LIMIT}). Click 'New Tray' to reset.`, "error");
       return;
     }
-    if (!chargingboardSerial || !controlboardSerial) {
-      showMsg(msgLedboard, "Verify both board serials first.", "error");
+    if (!chargingboardSerial) {
+      showMsg(msgLedboard, "Verify the chargingboard serial first.", "error");
       return;
     }
     const serial = scanLedboard.value.trim();
@@ -275,7 +236,6 @@
         body: JSON.stringify({
           serial_num: serial,
           chargingboard: chargingboardSerial,
-          controlboard: controlboardSerial,
         })
       });
       const data = await res.json();
@@ -314,7 +274,6 @@
         body: JSON.stringify({
           serial_num: verifiedSerial,
           chargingboard: chargingboardSerial,
-          controlboard: controlboardSerial,
           decision,
           shift: shiftSel.value,
           remarks,
@@ -347,9 +306,6 @@
 
   btnChargingboard.addEventListener("click", doCheckChargingboard);
   scanChargingboard.addEventListener("keydown", e => { if (e.key === "Enter") doCheckChargingboard(); });
-
-  btnControlboard.addEventListener("click", doCheckControlboard);
-  scanControlboard.addEventListener("keydown", e => { if (e.key === "Enter") doCheckControlboard(); });
 
   btnLedboard.addEventListener("click", doVerifyLedboard);
   scanLedboard.addEventListener("keydown", e => { if (e.key === "Enter") doVerifyLedboard(); });

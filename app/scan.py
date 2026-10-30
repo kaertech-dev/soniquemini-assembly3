@@ -7,20 +7,18 @@ BOARD_STATIONS = {
         "table": "soniquemini.chargingboard_main",
         "stations": ("test",),
     },
-    "controlboard": {
-        "table": "soniquemini.controlboard_main",
-        "stations": ("progtest", "vi"),
-    },
 }
 REQUIRED_STATIONS = (
     "test",
     "lasermarking",
+    "vi",
+    "assembly1",
+    "assembly2",
 )
 MAX_FAIL_REPETITIONS = 3
 
-
 def lookup_board(serial_num: str, board_type: str):
-    """Look up a charging or control board and its required station results."""
+    """Look up a chargingboard and its required station results."""
     config = BOARD_STATIONS.get(board_type)
     if config is None:
         return None
@@ -36,14 +34,13 @@ def lookup_board(serial_num: str, board_type: str):
         (serial_num,),
     )
 
-
 def process_board_check(serial_num: str, board_type: str):
     board_type = board_type.strip().lower()
     config = BOARD_STATIONS.get(board_type)
     if config is None:
         return {
             "status": "fail",
-            "message": "Choose either the chargingboard or controlboard station.",
+            "message": "Choose the chargingboard station.",
             "ok": False,
         }
 
@@ -78,8 +75,7 @@ def lookup_unit(serial_num: str):
     """Check ledboard_main for the serial and its station statuses."""
     return query_one(
         """
-        SELECT serial_num, po_num, test, lasermarking, assembly, finaltest,
-               fvi, packaging
+        SELECT serial_num, po_num, test, lasermarking, vi, assembly1, assembly2,
         FROM soniquemini.ledboard_main
         WHERE BINARY serial_num = BINARY %s
         LIMIT 1
@@ -87,12 +83,11 @@ def lookup_unit(serial_num: str):
         (serial_num,),
     )
 
-
-def already_assembly(serial_num: str):
+def already_assembly3(serial_num: str):
     return query_one(
         """
         SELECT serial_num, po_num, operator_en, shift, date_time, test_rep, status
-        FROM soniquemini.ledboard_assembly
+        FROM soniquemini.ledboard_assembly3
         WHERE serial_num = %s AND status = 1
         LIMIT 1
         """,
@@ -107,7 +102,7 @@ def _fail_serials(serial_num: str):
 def _failed_attempt_rows(serial_num: str, cursor=None):
     sql = """
         SELECT serial_num
-        FROM soniquemini.ledboard_assembly
+        FROM soniquemini.ledboard_assembly3
         WHERE serial_num IN (%s, %s, %s) AND status = 0
     """
     params = _fail_serials(serial_num)
@@ -136,7 +131,7 @@ def stations_passed(row: dict) -> bool:
     return all(row.get(station) == 1 for station in REQUIRED_STATIONS)
 
 
-def _already_assembly_message(record: dict) -> str:
+def _already_assembly3_message(record: dict) -> str:
     recorded_at = record["date_time"]
     if isinstance(recorded_at, datetime):
         recorded_at = recorded_at.strftime("%Y-%m-%d %H:%M:%S")
@@ -148,15 +143,14 @@ def _already_assembly_message(record: dict) -> str:
     )
 
 
-def record_assembly(
+def record_assembly3(
     serial_num: str,
     chargingboard: str,
-    controlboard: str,
     po_num: str,
     operator_en: str,
     shift: str,
 ):
-    """Atomically prevent duplicate PASS rows and record an assembly PASS."""
+    """Atomically prevent duplicate PASS rows and record an assembly3 PASS."""
     conn = get_conn(read_timeout=15)
     try:
         cur = conn.cursor()
@@ -172,7 +166,7 @@ def record_assembly(
         cur.execute(
             """
             SELECT serial_num, po_num, operator_en, shift, date_time, test_rep, status
-            FROM soniquemini.ledboard_assembly
+            FROM soniquemini.ledboard_assembly3
             WHERE serial_num = %s AND status = 1
             LIMIT 1
             FOR UPDATE
@@ -187,17 +181,17 @@ def record_assembly(
         cur.execute(
             """
             UPDATE soniquemini.ledboard_main
-            SET assembly = 1
+            SET assembly3 = 1
             WHERE BINARY serial_num = BINARY %s
             """,
             (serial_num,),
         )
         cur.execute(
             """
-            INSERT INTO soniquemini.ledboard_assembly
-                (serial_num, po_num, operator_en, shift, chargingboard, controlboard,
+            INSERT INTO soniquemini.ledboard_assembly3
+                (serial_num, po_num, operator_en, shift, chargingboard,
                  date_time, test_rep, remarks, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 1, "", 1)
+            VALUES (%s, %s, %s, %s, %s, %s, 1, "", 1)
             """,
             (
                 serial_num,
@@ -205,7 +199,6 @@ def record_assembly(
                 operator_en,
                 shift,
                 chargingboard,
-                controlboard,
                 datetime.now(),
             ),
         )
@@ -221,7 +214,6 @@ def record_assembly(
 def record_fail(
     serial_num: str,
     chargingboard: str,
-    controlboard: str,
     po_num: str,
     operator_en: str,
     shift: str,
@@ -248,10 +240,10 @@ def record_fail(
 
         cur.execute(
             """
-            INSERT INTO soniquemini.ledboard_assembly
-                (serial_num, po_num, operator_en, shift, chargingboard, controlboard,
+            INSERT INTO soniquemini.ledboard_assembly3
+                (serial_num, po_num, operator_en, shift, chargingboard,
                  date_time, test_rep, remarks, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 0)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0)
             """,
             (
                 f"{serial_num}_{repetition}",
@@ -259,7 +251,6 @@ def record_fail(
                 operator_en,
                 shift,
                 chargingboard,
-                controlboard,
                 datetime.now(),
                 repetition,
                 reason,
@@ -274,26 +265,21 @@ def record_fail(
         conn.close()
 
 
-def validate_scan(serial_num: str, chargingboard: str, controlboard: str):
-    """Validate both scanned boards and all required LED-board stations."""
+def validate_scan(serial_num: str, chargingboard: str):
+    """Validate the scanned chargingboard and required LED-board stations."""
     serial_num = serial_num.strip()
     chargingboard = chargingboard.strip()
-    controlboard = controlboard.strip()
 
-    if not chargingboard or not controlboard:
+    if not chargingboard:
         return {
             "status": "fail",
-            "message": "Scan and verify both chargingboard and controlboard serials first.",
+            "message": "Scan and verify the chargingboard serial first.",
             "unit": None,
         }
 
-    for board_type, board_serial in (
-        ("chargingboard", chargingboard),
-        ("controlboard", controlboard),
-    ):
-        result = process_board_check(board_serial, board_type)
-        if not result["ok"]:
-            return {"status": result["status"], "message": result["message"], "unit": None}
+    result = process_board_check(chargingboard, "chargingboard")
+    if not result["ok"]:
+        return {"status": result["status"], "message": result["message"], "unit": None}
 
     unit = lookup_unit(serial_num)
     if not unit:
@@ -303,13 +289,13 @@ def validate_scan(serial_num: str, chargingboard: str, controlboard: str):
             "unit": None,
         }
 
-    assembly_record = already_assembly(serial_num)
-    if assembly_record:
+    assembly3_record = already_assembly3(serial_num)
+    if assembly3_record:
         return {
-            "status": "already_assembly",
-            "message": _already_assembly_message(assembly_record),
+            "status": "already_assembly3",
+            "message": _already_assembly3_message(assembly3_record),
             "unit": unit,
-            "saved_record": assembly_record,
+            "saved_record": assembly3_record,
         }
 
     if fail_repetition(serial_num) >= MAX_FAIL_REPETITIONS:
@@ -340,7 +326,6 @@ def validate_scan(serial_num: str, chargingboard: str, controlboard: str):
 def finalize_scan(
     serial_num: str,
     chargingboard: str,
-    controlboard: str,
     operator_en: str,
     shift: str,
     decision: str,
@@ -349,15 +334,14 @@ def finalize_scan(
     """Revalidate the scanned boards and LED-board before saving the decision."""
     serial_num = serial_num.strip()
     chargingboard = chargingboard.strip()
-    controlboard = controlboard.strip()
     decision = (decision or "").strip().lower()
 
     if decision not in ("pass", "fail"):
         return {"status": "fail", "message": "Invalid decision.", "unit": None}
 
-    check = validate_scan(serial_num, chargingboard, controlboard)
+    check = validate_scan(serial_num, chargingboard)
     if check["status"] != "ok":
-        if decision == "pass" and check["status"] == "already_assembly":
+        if decision == "pass" and check["status"] == "already_assembly3":
             return {
                 "status": "ok",
                 "message": check["message"],
@@ -376,7 +360,6 @@ def finalize_scan(
         repetition = record_fail(
             serial_num,
             chargingboard,
-            controlboard,
             unit["po_num"],
             operator_en,
             shift,
@@ -399,10 +382,9 @@ def finalize_scan(
             "serial_num": f"{serial_num}_{repetition}",
         }
 
-    existing_record = record_assembly(
+    existing_record = record_assembly3(
         serial_num,
         chargingboard,
-        controlboard,
         unit["po_num"],
         operator_en,
         shift,
@@ -410,7 +392,7 @@ def finalize_scan(
     if existing_record:
         return {
             "status": "ok",
-            "message": _already_assembly_message(existing_record),
+            "message": _already_assembly3_message(existing_record),
             "unit": unit,
             "decision": "pass",
             "serial_num": serial_num,
@@ -419,7 +401,7 @@ def finalize_scan(
 
     return {
         "status": "ok",
-        "message": f"Serial '{serial_num}' recorded as assembly successfully.",
+        "message": f"Serial '{serial_num}' recorded as assembly3 successfully.",
         "unit": unit,
         "decision": "pass",
         "serial_num": serial_num,

@@ -5,9 +5,9 @@ ADMIN_READ_TIMEOUT_SECONDS = 20
 def get_packing_logs(limit: int = 200):
     return query_all(
         """
-        SELECT serial_num, po_num, operator_en, shift, chargingboard, controlboard,
+        SELECT serial_num, po_num, operator_en, shift, chargingboard,
                date_time, test_rep, remarks, status
-        FROM soniquemini.ledboard_assembly
+        FROM soniquemini.ledboard_assembly3
         ORDER BY date_time DESC
         LIMIT %s
         """,
@@ -23,7 +23,7 @@ def get_operator_summary():
             COUNT(*)            AS total_scanned,
             SUM(status = 1)     AS total_pass,
             MAX(date_time)      AS last_scan
-        FROM soniquemini.ledboard_assembly
+        FROM soniquemini.ledboard_assembly3
         GROUP BY operator_en
         ORDER BY total_scanned DESC
         """,
@@ -37,7 +37,7 @@ def get_daily_summary():
             DATE(date_time)     AS scan_date,
             COUNT(*)            AS total,
             SUM(status = 1)     AS passed
-        FROM soniquemini.ledboard_assembly
+        FROM soniquemini.ledboard_assembly3
         GROUP BY scan_date
         ORDER BY scan_date DESC
         LIMIT 30
@@ -48,9 +48,9 @@ def get_daily_summary():
 def get_recent_by_operator(operator_en: str, limit: int = 50):
     return query_all(
         """
-        SELECT serial_num, po_num, shift, chargingboard, controlboard,
+        SELECT serial_num, po_num, shift, chargingboard,
                date_time, status, remarks
-        FROM soniquemini.ledboard_assembly
+        FROM soniquemini.ledboard_assembly3
         WHERE operator_en = %s
         ORDER BY date_time DESC
         LIMIT %s

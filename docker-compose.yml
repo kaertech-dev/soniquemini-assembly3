@@ -4,7 +4,7 @@ services:
     image: ledboard_assembly
     container_name: soniquemini_ledboard
     ports:
-      - "5059:5059"
+      - "5072:5072"
     restart: always
     env_file:
       - .env
