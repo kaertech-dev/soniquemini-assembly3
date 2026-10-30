@@ -193,7 +193,7 @@ def record_assembly3(
             INSERT INTO soniquemini.ledboard_assembly3
                 (serial_num, po_num, operator_en, shift, chargingboard,
                  date_time, test_rep, remarks, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 1, "", 1)
+            VALUES (%s, %s, %s, %s, %s, %s, 1, "", 1)
             """,
             (
                 serial_num,
@@ -246,7 +246,7 @@ def record_fail(
             INSERT INTO soniquemini.ledboard_assembly3
                 (serial_num, po_num, operator_en, shift, chargingboard,
                  date_time, test_rep, remarks, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 0)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0)
             """,
             (
                 f"{serial_num}_{repetition}",
