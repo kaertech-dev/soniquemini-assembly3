@@ -201,7 +201,6 @@ def record_assembly3(
                 operator_en,
                 shift,
                 chargingboard,
-                "",
                 datetime.now(),
             ),
         )
@@ -254,7 +253,6 @@ def record_fail(
                 operator_en,
                 shift,
                 chargingboard,
-                "",
                 datetime.now(),
                 repetition,
                 reason,
