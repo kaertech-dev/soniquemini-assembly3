@@ -191,7 +191,7 @@ def record_assembly3(
         cur.execute(
             """
             INSERT INTO soniquemini.ledboard_assembly3
-                (serial_num, po_num, operator_en, shift, chargingboard, controlboard,
+                (serial_num, po_num, operator_en, shift, chargingboard,
                  date_time, test_rep, remarks, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, 1, "", 1)
             """,
@@ -244,7 +244,7 @@ def record_fail(
         cur.execute(
             """
             INSERT INTO soniquemini.ledboard_assembly3
-                (serial_num, po_num, operator_en, shift, chargingboard, controlboard,
+                (serial_num, po_num, operator_en, shift, chargingboard,
                  date_time, test_rep, remarks, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 0)
             """,
