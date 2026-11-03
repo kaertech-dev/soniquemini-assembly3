@@ -5,13 +5,14 @@ from app.db import get_conn, query_all, query_one
 BOARD_STATIONS = {
     "chargingboard": {
         "table": "soniquemini.chargingboard_main",
-        "stations": ("test",),
+        "stations": ("test", "soldering", "vi", "assembly"),
     },
 }
 REQUIRED_STATIONS = (
+    "soldering",
+    "vi",
     "test",
     "lasermarking",
-    "vi",
     "assembly1",
     "assembly2",
 )
