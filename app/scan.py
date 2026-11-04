@@ -5,7 +5,7 @@ from app.db import get_conn, query_all, query_one
 BOARD_STATIONS = {
     "chargingboard": {
         "table": "soniquemini.chargingboard_main",
-        "stations": ("test", "soldering", "vi", "assembly"),
+        "stations": ("test", "soldering", "vi", "assembly",),
     },
 }
 REQUIRED_STATIONS = (
@@ -71,12 +71,11 @@ def process_board_check(serial_num: str, board_type: str):
         "ok": True,
     }
 
-
 def lookup_unit(serial_num: str):
     """Check ledboard_main for the serial and its station statuses."""
     return query_one(
         """
-        SELECT serial_num, po_num, test, lasermarking, vi, assembly1, assembly2,
+        SELECT serial_num, po_num, soldering, vi, test, lasermarking, assembly1, assembly2
         FROM soniquemini.ledboard_main
         WHERE BINARY serial_num = BINARY %s
         LIMIT 1
